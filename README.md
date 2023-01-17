@@ -10,3 +10,5 @@ Note that on GitHub the usual method of right-clicking a file and choosing "Save
 
 _________________________________________________________________________________________________________________________
 This textbook and code repository are licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](https://creativecommons.org/licenses/by-sa/4.0/).
+_________________________________________________________________________________________________________________________
+This is the easiest way for me to work on the contents of the book and keep track of the codes provided in different chapters. I do my best to include the additional tasks outlined in each of the chapters, so it's just a way for me to practice ABM and ensure saved information if my computer dies on my unexpectedly - Robert
