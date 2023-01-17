@@ -1,87 +1,138 @@
-extensions [palette]
+; Romanowska, Wren, Crabtree. 2021. Agent-Based Modeling for Archaeology: Simulating the Complexity of Societies. Santa Fe, NM: SFI Press.
+; Chapter 1 Code
+; 2023.01.14
+; R. Staniuk
+
+; 1.1 The Model: Young & Bettinger’s Simulation of Dispersal
+; Set parameters [ population-growth = popG
+;  initial-pop-size = n
+;  initial-location = (x, y)]
+; Create n agents
+; For each agent, A,
+; Place A in (x, y)
+; At each time step, T,
+; For each agent, A,
+; Draw random number, N, between 0-1
+; If N < popG AND
+; If there is at least one adjacent cell, C,
+; (x±1, y±1) that is empty
+; Create new agent, B,
+; Place B on cell C
+
+; basic code
+; to setup
+;  clear-all; removes any remnants of the previous run, including clearing plots and monitors
+;  create-turtles 20 [; turtles = agents
+;    set color random 140
+;    set size 2
+;    set shape "turtle"
+;    setxy random 5 random 5; position agents in the world
+;  ]
+;  reset-ticks; resets the clock to 0
+;end
+;to go
+;  ask turtles [; initialize command, specify the entity
+;    rt random 360; rotate a random number of degrees between 0 and a full circle
+;    fd 1; move forwards by the lenght of 1 patch
+;  ]
+;  tick; mark the end of all procedures in the current time step and to start a new one
+;end
+
+; if statement consists of a condition and a code block
+turtles-own [age]
+patches-own [carrying-capacity]
 
 to setup
-  clear-all
-  ask patches [set pcolor palette:scale-gradient palette:scheme-colors "Sequential" "YlGnBu" 5 (pxcor + pycor) 0 25]
-  crt 20 [
-    setxy random 5 random 5
+  clear-all; removes any remnants of the previous run, including clearing plots and monitors
+  import-pcolors "ch1_map.png"
+  ask patches with [pcolor = white][
+      set carrying-capacity 0
+    ]
+  ask patches with [pcolor != white][
+      set carrying-capacity 1
   ]
-  reset-ticks
-end
-
-to setup-neighbours
-  clear-all
-  ask patches [set pcolor scale-color green (pxcor + pycor) 0 25]
-  crt 1 [
-    setxy max-pxcor / 2 max-pycor / 2
-    set heading 45
+  ask patches with [pycor = 307] [
+    set carrying-capacity 2
+  ]
+  create-turtles initial-pop-size [; turtles = agents
+    set color black
+    set size 2
+    set shape "turtle"
+    setxy ( 360 + random 5 ) (170 + random 5 ); position agents in the world
+  ]
+    create-turtles initial-pop-size [; turtles = agents
     set color red
+    set size 2
+    set shape "turtle"
+    setxy ( 501 + random 5 ) (263 + random 5 ); position agents in the world
   ]
-  ask turtle 0 [
-    ask neighbors [set pcolor cyan]
-    ask neighbors4 [set pcolor yellow]
-  ]
-  reset-ticks
+  reset-ticks; resets the clock to 0
 end
-
-to show-neigh-sidebyside
-  clear-all
-  ask patches [set pcolor palette:scale-gradient palette:scheme-colors "Sequential" "YlGnBu" 5 (pxcor + pycor) 0 25]
-  create-turtles 1 [
-    setxy max-pxcor / 4 max-pycor / 4
-    set heading 45
-    set color red
-  ]
-
-  create-turtles 1 [
-    setxy max-pxcor / .5 max-pycor / .5
-    set heading 45
-    set color red
-  ]
-
-  ask turtle 0 [
-    ask neighbors [set pcolor violet]
-  ]
-
-  ask turtle 1 [
-    ask neighbors4 [set pcolor orange]
-  ]
-
-  reset-ticks
+to go
+  ask turtles[; initialize command, specify the entity
+    ;rt random 360; rotate a random number of degrees between 0 and a full circle
+    ;fd 1; move forwards by the lenght of 1 patch
+    set age age + 1
+    if random-float 1 <= pop-growth [reproduce]
+    ; random-float selects a random decimal number up to the number you specify
+    if random-float 1 <= mortality [die]
+    ]
+  tick; mark the end of all procedures in the current time step and to start a new one
 end
+to reproduce; reproduction
+  ;if any? neighbors4 with [count turtles-here = 0 and pcolor != white ] [; neighbors = Moore neighborhood when 8, neighbors4 = von Neumann neighborhood
+    ;let empty-patch one-of neighbors4 with
+    ;[count turtles-here = 0 and pcolor != white ]
+    ;hatch 1[; clone of the parent inheriting all of its parent's characteristics = state variables
+    ;set color color + 0.1; "set my color to my current color plus a little brightness"
+    ;move-to empty-patch
+    ;]
+  if any? neighbors4 with [count turtles-here < carrying-capacity] [
+    let empty-patch one-of neighbors4 with
+    [ count turtles-here < carrying-capacity ]
+    hatch 1[; clone of the parent inheriting all of its parent's characteristics = state variables
+    set color color + 0.1; "set my color to my current color plus a little brightness"
+    move-to empty-patch
+    ]
+  ]
+end
+;Why do we use models and simulations?
+;The three main functions of simulation are hypothesis testing and prediction,
+;theory building,
+;and data exploration (Premo 2010),
 @#$#@#$#@
 GRAPHICS-WINDOW
-3
+210
 10
-802
-810
+968
+457
 -1
 -1
-158.2
+1.25
 1
-12
-1
-1
-1
-0
+10
 1
 1
 1
 0
-4
+1
 0
-4
+1
 0
+599
 0
+350
+1
+1
 1
 ticks
 30.0
 
 BUTTON
-829
-11
-911
-44
+54
+212
+117
+245
 NIL
 setup
 NIL
@@ -95,13 +146,13 @@ NIL
 1
 
 BUTTON
-923
-11
-1024
-44
-coord_labels
-ask patches [set plabel (word \"(\" pxcor \",\" pycor \")\")]
+81
+280
+144
+313
 NIL
+go
+T
 1
 T
 OBSERVER
@@ -111,39 +162,50 @@ NIL
 NIL
 1
 
-BUTTON
-831
-95
-939
-128
-NIL
-setup-neighbours
-NIL
+SLIDER
+83
+138
+255
+171
+pop-growth
+pop-growth
+0
 1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
+0.23
+0.01
 1
+NIL
+HORIZONTAL
 
-BUTTON
-831
-139
-988
-172
-NIL
-show-neigh-sidebyside
-NIL
+SLIDER
+110
+84
+283
+117
+initial-pop-size
+initial-pop-size
+0
+10000
+457.0
 1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
 1
+NIL
+HORIZONTAL
+
+SLIDER
+120
+405
+293
+438
+mortality
+mortality
+0
+1
+0.2
+0.01
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -487,7 +549,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.2.0
+NetLogo 6.3.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@

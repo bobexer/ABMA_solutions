@@ -1,71 +1,99 @@
-turtles-own [ goods goodsA goodsB]
+; Romanowska, Wren, Crabtree. 2021. Agent-Based Modeling for Archaeology: Simulating the Complexity of Societies. Santa Fe, NM: SFI Press.
+; Chapter 2 Code
+; 2023.01.14
+; R. Staniuk
+
+; trade model
+globals [mean-goods]
+breed [producers producer]
+breed [vendors vendor]
+producers-own [goods distance-level]
+vendors-own[goods distance-level]
 
 to setup
-  ca
-  crt 500 [
-    set goods 100                       ; goods in the simple scenario
-    set goodsA random 100               ; goods A & B in the barter scenario
-    set goodsB random 100
+  clear-all
+  set mean-goods [0 0 0 0 0 0]
+  create-producers 1 [
+    set shape "house"
+    set color red
+    set goods 0
+    set distance-level 0
   ]
+  ask patches at-points [[0 1] [1 0] [-1 0] [0 -1]] [
+    sprout-vendors 1 [
+      set shape "person"
+      set color white
+      set goods 0
+      set size 1
+      set distance-level 1
+    ]
+  ]
+  repeat (level - 1) [populate]
+  ask vendors [set label goods]
   reset-ticks
 end
 
 to go
-  ifelse scenario = "simple" [         ; choose the scenario in the interface
-    simple
-  ][
-    barter
-  ]
+  ask turtles [set label goods]
+  ask producers [set goods production-level]
+  ask producers [trade]
+  ask vendors with [goods > 0] [trade]
+  ask vendors with [goods >= 1] [set goods goods - 1]
+  iterate-list-of-mean-goods
   tick
 end
 
-to simple
-  ; simple exchange - each turtle gives 1 to another turtle
-  ask turtles [
-    if goods > 0 [                           ; comment out (and one bracket at the end) to allow for negative values
-      set goods goods - 1                    ; update the seller
-        ask one-of other turtles [
-          set goods goods + 1                  ; update the buyer
-        ]
-     ]
+to populate
+  ask vendors [
+    let not-occupied-count count neighbors4 with ; determine how many empty patches a vendor has and store that number in a local variable
+    [ not any? turtles-here ]
+    hatch not-occupied-count [
+      set color color - 10
+      set distance-level [distance-level + 1] of myself
+      ;set (my variable) distance-level to be equal to the distance-level of the turtle  (myslef, which refes to the parent turtle) plus one
+      set size 1
+      set goods 0
+      move-to one-of neighbors4 with
+      [ not any? turtles-here ]
+    ]
   ]
 end
 
-to barter
-  ; simple barter - turtles exchange their more abundant good with other turtles
-  ask turtles [
-    ifelse goodsA > goodsB [  ; if you have more goods A than B then try to get good B
-      let sellers turtles with [ goodsB > goodsA and goodsB >= 0] ; exchange with a turtle in the opposite situation
-      if any? sellers [
-        ask one-of sellers [
-          set goodsB goodsB - 1           ; update the seller
-          set goodsA goodsA + 1]
-        set goodsB goodsB + 1              ; update the buyer
-        set goodsA goodsA - 1
-      ]
-    ][; if you have more goods B than A then try to get good A
-      let sellers turtles with [ goodsA > goodsB and goodsA >= 0]
-      if any? sellers [
-        ask one-of sellers [
-          set goodsA goodsA - 1            ; update the seller
-          set goodsB goodsB + 1
-        ]
-        set goodsA goodsA + 1            ; update the buyer
-        set goodsB goodsB - 1
-      ]
+to trade
+  let next-tier-neighbors (vendors-on neighbors4) with [distance-level = [distance-level + 1] of myself]
+
+  while [goods > storage * storage-threshold and any?
+    next-tier-neighbors with [goods < storage]] [
+    set goods goods - 1
+    ask one-of next-tier-neighbors with [goods < storage] [
+      set goods goods + 1
     ]
-    set goods goodsA + goodsB
+  ]
+end
+
+to-report calculate-volume [current-distance-level]
+  let vendors-tier vendors with [distance-level = current-distance-level]
+  report mean [goods] of vendors-tier
+end
+
+to iterate-list-of-mean-goods
+  let i 1
+  while [i <= level] [
+    let goods-at-distance calculate-volume i
+    set mean-goods replace-item (i - 1) mean-goods
+    goods-at-distance
+    set i i + 1
   ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-388
+210
 10
-825
-448
+810
+611
 -1
 -1
-13.0
+17.94
 1
 10
 1
@@ -79,17 +107,17 @@ GRAPHICS-WINDOW
 16
 -16
 16
-0
-0
+1
+1
 1
 ticks
 30.0
 
 BUTTON
-11
-23
-74
-56
+99
+78
+199
+111
 NIL
 setup
 NIL
@@ -102,11 +130,71 @@ NIL
 NIL
 1
 
+SLIDER
+42
+178
+214
+211
+level
+level
+1
+6
+6.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+69
+267
+241
+300
+production-level
+production-level
+4
+50
+25.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+56
+365
+228
+398
+storage
+storage
+0
+100
+50.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+56
+455
+228
+488
+storage-threshold
+storage-threshold
+0
+1
+0.1
+0.01
+1
+NIL
+HORIZONTAL
+
 BUTTON
-81
-24
+43
 144
-57
+106
+177
 NIL
 go
 T
@@ -120,95 +208,64 @@ NIL
 1
 
 PLOT
-4
-140
-367
-290
-Amount of goods
-NIL
-NIL
--100.0
-500.0
-0.0
-40.0
-true
-false
-"" ""
-PENS
-"default" 10.0 1 -16777216 true "" "set-plot-y-range 0 40\nhistogram [ goods ] of turtles"
-
-PLOT
-5
-298
-367
-448
-Distribution of each good
+101
+629
+301
+779
+plot 1
 NIL
 NIL
 0.0
-100.0
+50.0
 0.0
-40.0
+50.0
 true
 true
 "" ""
 PENS
-"goods A" 1.0 1 -5298144 true "" "histogram [ goodsA ] of turtles"
-"goods B" 1.0 1 -13840069 true "" "histogram [ goodsB ] of turtles"
-
-CHOOSER
-10
-61
-148
-106
-scenario
-scenario
-"simple" "barter"
-1
-
-MONITOR
-219
-87
-367
-132
-Turtle with the most goods
-max [goods] of turtles
-17
-1
-11
+"pen-0" 1.0 0 -2758414 true "" "plot item 0 mean-goods"
+"pen-1" 1.0 0 -5516827 true "" "plot item 1 mean-goods"
+"pen-2" 1.0 0 -11033397 true "" "plot item 2 mean-goods"
+"pen-3" 1.0 0 -14454117 true "" "plot item 3 mean-goods"
+"pen-4" 1.0 0 -15582384 true "" "plot item 4 mean-goods"
+"pen-5" 1.0 0 -16710651 true "" "plot item 5 mean-goods"
 
 @#$#@#$#@
 ## WHAT IS IT?
 
-Simple trade model consisting of two modes: 
-- simple exchange (from Wilensky 2011 "Simple Economy")
-- simple barter echange.
-
-This is an example model (Code 2.2.1 and 2.2.2 ) used in chapter 2.2 of Romanowska, I., Wren, C., Crabtree, S. 2021 Agent-based modelling for archaeologists. Santa Fe Institute Press.
+(a general understanding of what the model is trying to show or explain)
 
 ## HOW IT WORKS
 
-Agents randomly choose a partner with whom they exchange items. 
+(what rules the agents use to create the overall behavior of the model)
 
 ## HOW TO USE IT
 
-Choose between 'simple' and 'barter' in the interface. Press Setup, then press Go. 
-You can allow the turtles to go into debt by commenting out  if goods > 0 [  and one of the brackets ] in the 'simple' procedure.
+(how to use the model, including a description of each of the items in the Interface tab)
 
 ## THINGS TO NOTICE
 
-For the simple model look at the "Amount of goods" histogram and notice how despite the randomness of the process some agents begin to amass more items than others. 
-For the barter model look at the "Distribution of each good" histogram. It shows a constantly changing but tending towards normal distribution. 
+(suggested things for the user to notice while running the model)
 
 ## THINGS TO TRY
 
-- Try changing the number of agents.
-- Try changing the value of goodsA versus goodsB (eg. one goodA for two goodsB)
+(suggested things for the user to try to do (move sliders, switches, etc.) with the model)
 
+## EXTENDING THE MODEL
+
+(suggested things to add or change in the Code tab to make the model more complicated, detailed, accurate, etc.)
+
+## NETLOGO FEATURES
+
+(interesting or unusual features of NetLogo that the model uses, particularly in the Code tab; or where workarounds were needed for missing features)
+
+## RELATED MODELS
+
+(models in the NetLogo Models Library and elsewhere which are of related interest)
 
 ## CREDITS AND REFERENCES
 
-The simple model is adapted from Wilensky 2011 "Simple Economy" NetLogo library.
+(a reference to the model's URL on the web if it has one, as well as any other necessary credits, citations, and links)
 @#$#@#$#@
 default
 true
@@ -515,7 +572,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.1
+NetLogo 6.3.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
